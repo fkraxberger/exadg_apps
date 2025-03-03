@@ -1,0 +1,32 @@
+{
+    "General": {
+        "Precision": "double",
+        "Dim": "3",
+        "IsTest": "false"
+    },
+    "SpatialResolution": {
+        "DegreeMin": "2",
+        "DegreeMax": "2",
+        "RefineSpaceMin": "0",
+        "RefineSpaceMax": "0"
+    },
+    "TemporalResolution": {
+        "RefineTimeMin": "0",
+        "RefineTimeMax": "0"
+    },
+    "Application": {
+        "Formulation": "SkewSymmetric",
+        "SpeedOfSound": "343.0",
+        "Density": "1.2",
+        "EndTime": "1.4",
+        "TimeIntegrationScheme": "CFL",
+        "CFL": "0.25",
+        "OrderTimeIntegrator": "2",
+        "BoundaryValueFilename": "audio.csv"
+    },
+    "Output": {
+        "OutputDirectory": "output/valley_20m/",
+        "OutputName": "valley",
+        "WriteOutput": "true"
+    }
+}
