@@ -352,7 +352,7 @@ private:
     // this->boundary_descriptor->admittance_bc.insert(std::make_pair(11, std::make_shared<Functions::ConstantFunction<dim>>(1.0)));
 
 
-    this->boundary_descriptor->admittance_bc.insert(std::make_pair(1, std::make_shared<Functions::ConstantFunction<dim>>(0.0)));
+    this->boundary_descriptor->admittance_bc.insert(std::make_pair(1, std::make_shared<Functions::ConstantFunction<dim>>(1.0)));
     this->boundary_descriptor->admittance_bc.insert(std::make_pair(2, std::make_shared<Functions::ConstantFunction<dim>>(1.0)));
     this->boundary_descriptor->admittance_bc.insert(std::make_pair(3, std::make_shared<Functions::ConstantFunction<dim>>(1.0)));
     this->boundary_descriptor->admittance_bc.insert(std::make_pair(4, std::make_shared<Functions::ConstantFunction<dim>>(1.0)));
@@ -373,7 +373,7 @@ private:
     // this->field_functions->right_hand_side =
     //   std::make_shared<dealii::Functions::ZeroFunction<dim>>(1);
 
-    double target_radius = 1.0; //0.1
+    double target_radius = 0.1; //0.1
     this->field_functions->right_hand_side =
       std::make_shared<ReadBcPressure<dim>>(target_radius, boundary_val_filename);
   }
