@@ -274,8 +274,8 @@ private:
           std::vector<unsigned int> const & /* vector_local_refinements*/)
     {
 
-
-      GridIn<dim>(tria).read_exodusii("2D-extruded_test1_20m_v02.e", false);
+      // GridIn<dim>(tria).read_exodusii("2D-extruded_test1_20m_v02.e", false);
+      GridIn<dim>(tria).read_exodusii("cube_10m.e", false);
 
       // GridIn writes ExodusII sideset_ids into manifold ids. We want to use it as boundary IDs and
       // have flat manifolds:
@@ -335,21 +335,30 @@ private:
 
     // ID = 0 ??
     // this->boundary_descriptor->admittance_bc.insert(std::make_pair(0, std::make_shared<Functions::ConstantFunction<dim>>(0.0)));
-    // Wald
+    // // Wald
+    // this->boundary_descriptor->admittance_bc.insert(std::make_pair(1, std::make_shared<Functions::ConstantFunction<dim>>(0.0)));
+    // this->boundary_descriptor->admittance_bc.insert(std::make_pair(6, std::make_shared<Functions::ConstantFunction<dim>>(0.0)));
+    // // Bahn, Strasse
+    // this->boundary_descriptor->admittance_bc.insert(std::make_pair(2, std::make_shared<Functions::ConstantFunction<dim>>(0.0)));
+    // this->boundary_descriptor->admittance_bc.insert(std::make_pair(4, std::make_shared<Functions::ConstantFunction<dim>>(0.0)));
+    // // Wiese
+    // this->boundary_descriptor->admittance_bc.insert(std::make_pair(3, std::make_shared<Functions::ConstantFunction<dim>>(0.0)));
+    // this->boundary_descriptor->admittance_bc.insert(std::make_pair(5, std::make_shared<Functions::ConstantFunction<dim>>(0.0)));
+    // // ABC
+    // this->boundary_descriptor->admittance_bc.insert(std::make_pair(7, std::make_shared<Functions::ConstantFunction<dim>>(1.0)));
+    // this->boundary_descriptor->admittance_bc.insert(std::make_pair(8, std::make_shared<Functions::ConstantFunction<dim>>(1.0)));
+    // this->boundary_descriptor->admittance_bc.insert(std::make_pair(9, std::make_shared<Functions::ConstantFunction<dim>>(1.0)));
+    // this->boundary_descriptor->admittance_bc.insert(std::make_pair(10, std::make_shared<Functions::ConstantFunction<dim>>(1.0)));
+    // this->boundary_descriptor->admittance_bc.insert(std::make_pair(11, std::make_shared<Functions::ConstantFunction<dim>>(1.0)));
+
+
     this->boundary_descriptor->admittance_bc.insert(std::make_pair(1, std::make_shared<Functions::ConstantFunction<dim>>(0.0)));
-    this->boundary_descriptor->admittance_bc.insert(std::make_pair(6, std::make_shared<Functions::ConstantFunction<dim>>(0.0)));
-    // Bahn, Strasse
-    this->boundary_descriptor->admittance_bc.insert(std::make_pair(2, std::make_shared<Functions::ConstantFunction<dim>>(0.0)));
-    this->boundary_descriptor->admittance_bc.insert(std::make_pair(4, std::make_shared<Functions::ConstantFunction<dim>>(0.0)));
-    // Wiese
-    this->boundary_descriptor->admittance_bc.insert(std::make_pair(3, std::make_shared<Functions::ConstantFunction<dim>>(0.0)));
-    this->boundary_descriptor->admittance_bc.insert(std::make_pair(5, std::make_shared<Functions::ConstantFunction<dim>>(0.0)));
-    // ABC
-    this->boundary_descriptor->admittance_bc.insert(std::make_pair(7, std::make_shared<Functions::ConstantFunction<dim>>(1.0)));
-    this->boundary_descriptor->admittance_bc.insert(std::make_pair(8, std::make_shared<Functions::ConstantFunction<dim>>(1.0)));
-    this->boundary_descriptor->admittance_bc.insert(std::make_pair(9, std::make_shared<Functions::ConstantFunction<dim>>(1.0)));
-    this->boundary_descriptor->admittance_bc.insert(std::make_pair(10, std::make_shared<Functions::ConstantFunction<dim>>(1.0)));
-    this->boundary_descriptor->admittance_bc.insert(std::make_pair(11, std::make_shared<Functions::ConstantFunction<dim>>(1.0)));
+    this->boundary_descriptor->admittance_bc.insert(std::make_pair(2, std::make_shared<Functions::ConstantFunction<dim>>(1.0)));
+    this->boundary_descriptor->admittance_bc.insert(std::make_pair(3, std::make_shared<Functions::ConstantFunction<dim>>(1.0)));
+    this->boundary_descriptor->admittance_bc.insert(std::make_pair(4, std::make_shared<Functions::ConstantFunction<dim>>(1.0)));
+    this->boundary_descriptor->admittance_bc.insert(std::make_pair(5, std::make_shared<Functions::ConstantFunction<dim>>(1.0)));
+    this->boundary_descriptor->admittance_bc.insert(std::make_pair(6, std::make_shared<Functions::ConstantFunction<dim>>(1.0)));
+
   }
 
   void

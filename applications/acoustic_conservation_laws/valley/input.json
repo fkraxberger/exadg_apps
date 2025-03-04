@@ -25,7 +25,7 @@
         "BoundaryValueFilename": "audio.csv"
     },
     "Output": {
-        "OutputDirectory": "output/valley_20m/",
+        "OutputDirectory": "output/cube_10m/",
         "OutputName": "valley",
         "WriteOutput": "true"
     }
