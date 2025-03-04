@@ -22,7 +22,7 @@
         "TimeIntegrationScheme": "CFL",
         "CFL": "0.25",
         "OrderTimeIntegrator": "2",
-        "BoundaryValueFilename": "audio.csv"
+        "BoundaryValueFilename": "audio_cube.csv"
     },
     "Output": {
         "OutputDirectory": "output/cube_10m/",
