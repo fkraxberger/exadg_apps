@@ -273,9 +273,16 @@ private:
           unsigned int const global_refinements,
           std::vector<unsigned int> const & /* vector_local_refinements*/)
     {
+        //mock cube_1m.e
+        dealii::GridGenerator::subdivided_hyper_cube(tria,5, 0.0, 1.0, true);
+        for(const auto & face : tria.active_face_iterators()) {
+          if(face->at_boundary()) {
+            face->set_boundary_id(face->boundary_id()+1);
+          }
+        }
 
-      // GridIn<dim>(tria).read_exodusii("2D-extruded_test1_20m_v02.e", false);
-      GridIn<dim>(tria).read_exodusii("../applications/acoustic_conservation_laws/valley/cube_1m.e", false);
+      //  // GridIn<dim>(tria).read_exodusii("2D-extruded_test1_20m_v02.e", false);
+      //  GridIn<dim>(tria).read_exodusii("../applications/acoustic_conservation_laws/valley/cube_1m.e", false);
 
       // GridIn writes ExodusII sideset_ids into manifold ids. We want to use it as boundary IDs and
       // have flat manifolds:
