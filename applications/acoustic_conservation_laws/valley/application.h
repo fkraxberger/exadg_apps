@@ -275,7 +275,7 @@ private:
     {
 
       // GridIn<dim>(tria).read_exodusii("2D-extruded_test1_20m_v02.e", false);
-      GridIn<dim>(tria).read_exodusii("cube_10m.e", false);
+      GridIn<dim>(tria).read_exodusii("../applications/acoustic_conservation_laws/valley/cube_1m.e", false);
 
       // GridIn writes ExodusII sideset_ids into manifold ids. We want to use it as boundary IDs and
       // have flat manifolds:
