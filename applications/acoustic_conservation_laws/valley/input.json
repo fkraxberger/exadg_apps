@@ -22,7 +22,7 @@
         "TimeIntegrationScheme": "CFL",
         "CFL": "0.25",
         "OrderTimeIntegrator": "2",
-        "BoundaryValueFilename": "../../applications/acoustic_conservation_laws/valley/audio_with_trajectory_valley.csv"
+        "BoundaryValueFilename": "../applications/acoustic_conservation_laws/valley/audio_with_trajectory_valley.csv"
     },
     "Output": {
         "OutputDirectory": "output/cube_10m/",
