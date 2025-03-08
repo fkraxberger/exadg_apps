@@ -132,7 +132,7 @@ namespace ExaDG::Acoustics {
             this->param.speed_of_sound = speed_of_sound_;
 
             this->param.calculation_of_time_step_size = TimeStepCalculation::CFL;
-            this->param.cfl = 0.25;
+            this->param.cfl = 0.125;
             this->param.order_time_integrator = 2;
             this->param.start_with_low_order = true;
             this->param.adaptive_time_stepping = false;
@@ -247,8 +247,8 @@ namespace ExaDG::Acoustics {
             this->boundary_descriptor->admittance_bc.insert(
                 std::make_pair(2, std::make_shared<dealii::Functions::ConstantFunction<dim> >(0.0)));
             // PML
-            this->boundary_descriptor->pressure_dbc.insert(
-                std::make_pair(99, new dealii::Functions::ZeroFunction<dim>(dim)));
+            this->boundary_descriptor->admittance_bc.insert(
+                std::make_pair(99, std::make_shared<dealii::Functions::ConstantFunction<dim> >(0.0)));
         }
 
         void
@@ -303,7 +303,6 @@ namespace ExaDG::Acoustics {
         double period_ = 1.0;
         unsigned int number_of_periods_ = 1;
         double speed_of_sound_ = 1.0;
-        double density_ = 1.0;
         unsigned int n_elements_pml = 5;
         double pml_length = 0.3;
         double const theta = 0.0 * 0.25 * dealii::numbers::PI;
