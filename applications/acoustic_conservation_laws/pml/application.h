@@ -48,8 +48,10 @@ namespace ExaDG::Acoustics {
     class PMLDamping : public dealii::Function<dim>
     {
     public:
-      PMLDamping(std::vector<PMLInfo<dim>> const pml_infos_in) : pml_infos(pml_infos_in)
-      {
+      PMLDamping(std::vector<PMLInfo<dim>> const pml_infos_in) :
+        dealii::Function<dim>(dim),
+        pml_infos(pml_infos_in)
+        {
       }
 
     double
@@ -64,7 +66,7 @@ namespace ExaDG::Acoustics {
         if(distance > -1.0e-8)
         {
           temp = pml_info.speed_of_sound / (pml_info.pml_thickness - distance) -
-                 0.0 * pml_info.speed_of_sound / (pml_info.pml_thickness);
+                 1.0 * pml_info.speed_of_sound / (pml_info.pml_thickness);
           temp *= pml_info.normal[i];
         }
         result += temp;
