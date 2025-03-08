@@ -69,7 +69,6 @@ namespace ExaDG::Acoustics {
         }
         result += temp;
       }
-      std::cerr<<result<<std::endl;
       return result;
     }
 
