@@ -65,41 +65,18 @@ private:
   double const freq, ampl;
 };
 
-template<typename return_type>
-std::vector<return_type>
-split_string(std::string const &                             s,
-             char const                                      c,
-             std::function<return_type(const std::string &)> string_to_return_type)
-{
-  std::vector<return_type> result;
-
-  auto it     = s.begin();
-  auto it_sep = it;
-  while((it_sep = std::find(it, s.end(), c)) != s.end())
-  {
-    const std::string comp{it, it_sep};
-
-    result.push_back(string_to_return_type(comp));
-    it = std::next(it_sep);
-  }
-  const std::string comp{it, it_sep};
-  result.push_back(string_to_return_type(comp));
-  
-  return result;
-}
-
 
 template<int dim>
-class ReadBcPressure : public dealii::Function<dim>
-{
+class CSVTrajectoryReader {
 public:
-  ReadBcPressure(double radius, const std::string boundary_val_filename)
-    : dealii::Function<dim>(1, 0.0), boundary_val_filename(boundary_val_filename), boundaryVal(0.0), radius(radius)
-  {
+  bool parse_file(std::filesystem::path const&filename) {
+    assert(std::filesystem::exists(filename));
+
     std::string   line;
-    std::ifstream file(boundary_val_filename);
-    if(file.is_open())
-    {
+    std::ifstream file(filename);
+    if(!file.is_open()) {
+      return false;
+    }
       while(getline(file, line))
       {
         auto row =
@@ -113,7 +90,48 @@ public:
         positions.push_back(p);
       }
       file.close();
+    return true;
+  }
+
+
+private:
+  template<typename return_type>
+std::vector<return_type>
+split_string(std::string const &                             s,
+             char const                                      c,
+             std::function<return_type(const std::string &)> string_to_return_type)
+  {
+    std::vector<return_type> result;
+
+    auto it     = s.begin();
+    auto it_sep = it;
+    while((it_sep = std::find(it, s.end(), c)) != s.end())
+    {
+      const std::string comp{it, it_sep};
+
+      result.push_back(string_to_return_type(comp));
+      it = std::next(it_sep);
     }
+    const std::string comp{it, it_sep};
+    result.push_back(string_to_return_type(comp));
+
+    return result;
+  }
+
+public:
+  std::vector<double>             times;
+  std::vector<double>             values;
+  std::vector<dealii::Point<dim>> positions;
+};
+
+
+template<int dim>
+class ReadBcPressure : public dealii::Function<dim>
+{
+public:
+  ReadBcPressure(double radius, CSVTrajectoryReader<dim> const& reader)
+    : dealii::Function<dim>(1, 0.0), boundaryVal(0.0), radius(radius), times(reader.times), values(reader.values), positions(reader.positions)
+  {
   }
 
   void
@@ -157,12 +175,11 @@ public:
   }
 
 private:
-  std::string const               boundary_val_filename;
+  double                          boundaryVal;
+  double                          radius;
   std::vector<double>             times;
   std::vector<double>             values;
-  double                          boundaryVal;
   std::vector<dealii::Point<dim>> positions;
-  double                          radius;
   dealii::Point<dim>              currentPosition;
 };
 
@@ -242,9 +259,15 @@ public:
   }
 
 private:
+CSVTrajectoryReader<dim> reader;
+
   void
   set_parameters() final
   {
+    reader.parse_file(boundary_val_filename);
+
+
+
     // PHYSICAL QUANTITIES
     this->param.right_hand_side = true;
     this->param.start_time      = start_time;
@@ -273,9 +296,16 @@ private:
           unsigned int const global_refinements,
           std::vector<unsigned int> const & /* vector_local_refinements*/)
     {
+        //mock cube_1m.e
+        dealii::GridGenerator::subdivided_hyper_cube(tria,5, 0.0, 1.0, true);
+        for(const auto & face : tria.active_face_iterators()) {
+          if(face->at_boundary()) {
+            face->set_boundary_id(face->boundary_id()+1);
+          }
+        }
 
-      // GridIn<dim>(tria).read_exodusii("2D-extruded_test1_20m_v02.e", false);
-      GridIn<dim>(tria).read_exodusii("../applications/acoustic_conservation_laws/valley/cube_1m.e", false);
+      //  // GridIn<dim>(tria).read_exodusii("2D-extruded_test1_20m_v02.e", false);
+      //  GridIn<dim>(tria).read_exodusii("../applications/acoustic_conservation_laws/valley/cube_1m.e", false);
 
       // GridIn writes ExodusII sideset_ids into manifold ids. We want to use it as boundary IDs and
       // have flat manifolds:
@@ -288,6 +318,7 @@ private:
       // tria.set_all_manifold_ids_on_boundary(dealii::numbers::flat_manifold_id);
 
       tria.refine_global(global_refinements);
+      refine_triangulation_along_trajectory(tria, 1, target_radius);
     };
 
     GridUtilities::create_triangulation<dim>(
@@ -296,6 +327,34 @@ private:
     GridUtilities::create_mapping(mapping,
                                   this->param.grid.element_type,
                                   this->param.mapping_degree);
+  }
+
+  void
+  refine_triangulation_along_trajectory(dealii::Triangulation<dim> & tria,
+                                   unsigned int const           n_ref,
+                                   double const                 radius) const{
+
+      if(n_ref > 0)
+      {
+        for(unsigned int r = 0; r < n_ref; ++r)
+        {
+          for(auto const & cell : tria.active_cell_iterators())
+            if(cell->is_locally_owned())
+            {
+              for(const unsigned int i : dealii::GeometryInfo<dim>::vertex_indices())
+              {
+                auto const& v=cell->vertex(i);
+                auto it = std::find_if(reader.positions.begin(), reader.positions.end(),[&](auto const&p){return (p-v).norm()<radius-1.0e-6;});
+                if(it!=reader.positions.end())
+                {
+                  cell->set_refine_flag();
+                }
+              }
+            }
+
+          tria.execute_coarsening_and_refinement();
+        }
+      }
   }
 
   void
@@ -373,9 +432,8 @@ private:
     // this->field_functions->right_hand_side =
     //   std::make_shared<dealii::Functions::ZeroFunction<dim>>(1);
 
-    double target_radius = 0.1; //0.1
     this->field_functions->right_hand_side =
-      std::make_shared<ReadBcPressure<dim>>(target_radius, boundary_val_filename);
+      std::make_shared<ReadBcPressure<dim>>(target_radius, reader);
   }
 
   std::shared_ptr<PostProcessorBase<dim, Number>>
@@ -435,6 +493,7 @@ private:
   double      number_of_periods = 1.0;
   double      density           = 1.0;
   std::string boundary_val_filename          = "";
+  double target_radius = 0.01;
 
   double
   compute_period_duration()
