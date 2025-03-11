@@ -2,7 +2,7 @@
  *
  *  ExaDG - High-Order Discontinuous Galerkin for the Exa-Scale
  *
- *  Copyright (C) 2023 by the ExaDG authors
+ *  Copyright (C) 2021 by the ExaDG authors
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *  ______________________________________________________________________
  */
+
 
 // solver
 #include <exadg/acoustic_conservation_equations/solver.h>

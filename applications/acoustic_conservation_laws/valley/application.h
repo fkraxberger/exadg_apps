@@ -2,7 +2,7 @@
  *
  *  ExaDG - High-Order Discontinuous Galerkin for the Exa-Scale
  *
- *  Copyright (C) 2023 by the ExaDG authors
+ *  Copyright (C) 2021 by the ExaDG authors
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -19,87 +19,106 @@
  *  ______________________________________________________________________
  */
 
-#ifndef APPLICATIONS_ACOUSTIC_CONSERVATION_EQUATIONS_TEST_CASES_VIBRATING_MEMBRANE_H_
-#define APPLICATIONS_ACOUSTIC_CONSERVATION_EQUATIONS_TEST_CASES_VIBRATING_MEMBRANE_H_
+
+#ifndef APPLICATIONS_ACOUSTIC_CONSERVATION_LAWS_TEST_CASES_PLANE_WAVE_IN_DUCT_H_
+#define APPLICATIONS_ACOUSTIC_CONSERVATION_LAWS_TEST_CASES_PLANE_WAVE_IN_DUCT_H_
 
 #include <deal.II/base/function.h>
 #include <deal.II/distributed/tria.h>
 #include <deal.II/grid/grid_generator.h>
+#include <deal.II/grid/grid_tools.h>
 
-#include <exadg/grid/grid_utilities.h>
+#include <exadg/grid/mesh_movement_functions.h>
 
-#include <cmath>
-#include <cstdlib>
-#include <fstream>
-#include <iostream>
 
+#include <exadg/acoustic_conservation_equations/postprocessor/postprocessor.h>
 
 using namespace dealii;
 
-namespace ExaDG
+namespace ExaDG::Acoustics
 {
-namespace Acoustics
-{
-
 template<int dim>
-class AnalyticalBcPressure : public dealii::Function<dim>
+struct PMLInfo
+{
+  double             speed_of_sound;
+  double             pml_thickness;
+  dealii::Point<dim> point_on_plane;
+  dealii::Point<dim> normal;
+};
+
+//// inverse distance damping
+template<int dim>
+class PMLDamping : public dealii::Function<dim>
 {
 public:
-  AnalyticalBcPressure(const double freq, const double ampl)
-    : dealii::Function<dim>(1, 0.0), freq(freq), ampl(ampl) // 1...scalar, 0.0...startzeitpunkt
+  PMLDamping(std::vector<PMLInfo<dim>> const pml_infos_in)
+    : dealii::Function<dim>(dim), pml_infos(pml_infos_in)
   {
   }
 
   double
-  value(dealii::Point<dim> const & p, unsigned int const) const final
+  value(dealii::Point<dim> const & p, unsigned int const i) const final
   {
-    double const t  = this->get_time();
-    double const pi = dealii::numbers::PI;
+    double result = 0.0;
 
-    double result = ampl * std::sin(2.0 * pi * freq * t);
-
+    for(const auto & pml_info : pml_infos)
+    {
+      double const distance = (p - pml_info.point_on_plane) * pml_info.normal;
+      double       temp     = 0.0;
+      if(distance > -1.0e-8)
+      {
+        temp = pml_info.speed_of_sound / (pml_info.pml_thickness - distance) -
+               1.0 * pml_info.speed_of_sound / (pml_info.pml_thickness);
+        temp *= pml_info.normal[i];
+      }
+      result += temp;
+    }
     return result;
   }
 
 private:
-  double const freq, ampl;
+  // quantities needed for pml: speed_of_sound, pml_thickness, p_on_plane, normal
+  std::vector<PMLInfo<dim>> const pml_infos;
 };
 
-
 template<int dim>
-class CSVTrajectoryReader {
+class CSVTrajectoryReader
+{
 public:
-  bool parse_file(std::filesystem::path const&filename) {
+  bool
+  parse_file(std::filesystem::path const & filename)
+  {
     assert(std::filesystem::exists(filename));
 
     std::string   line;
     std::ifstream file(filename);
-    if(!file.is_open()) {
+    if(!file.is_open())
+    {
       return false;
     }
-      while(getline(file, line))
-      {
-        auto row =
-          split_string<double>(line, ',', [](const std::string & s) { return std::stod(s); });
-        times.push_back(row[0]);
-        values.push_back(row[1]);
+    while(getline(file, line))
+    {
+      auto row =
+        split_string<double>(line, ',', [](const std::string & s) { return std::stod(s); });
+      times.push_back(row[0]);
+      values.push_back(row[1]);
 
-        dealii::Point<dim> p;
-        for(unsigned int i = 0; i < dim; ++i)
-          p[i] = row[2 + i];
-        positions.push_back(p);
-      }
-      file.close();
+      dealii::Point<dim> p;
+      for(unsigned int i = 0; i < dim; ++i)
+        p[i] = row[2 + i];
+      positions.push_back(p);
+    }
+    file.close();
     return true;
   }
 
 
 private:
   template<typename return_type>
-std::vector<return_type>
-split_string(std::string const &                             s,
-             char const                                      c,
-             std::function<return_type(const std::string &)> string_to_return_type)
+  std::vector<return_type>
+  split_string(std::string const &                             s,
+               char const                                      c,
+               std::function<return_type(const std::string &)> string_to_return_type)
   {
     std::vector<return_type> result;
 
@@ -129,8 +148,13 @@ template<int dim>
 class ReadBcPressure : public dealii::Function<dim>
 {
 public:
-  ReadBcPressure(double radius, CSVTrajectoryReader<dim> const& reader)
-    : dealii::Function<dim>(1, 0.0), boundaryVal(0.0), radius(radius), times(reader.times), values(reader.values), positions(reader.positions)
+  ReadBcPressure(double radius, CSVTrajectoryReader<dim> const & reader)
+    : dealii::Function<dim>(1, 0.0),
+      boundaryVal(0.0),
+      radius(radius),
+      times(reader.times),
+      values(reader.values),
+      positions(reader.positions)
   {
   }
 
@@ -185,6 +209,40 @@ private:
 
 
 
+// template<int dim>
+// class PressureInlet : public dealii::Function<dim>
+// {
+// public:
+//   PressureInlet(double const period, unsigned int const number_of_periods)
+//     : dealii::Function<dim>(1, 0.0),
+//       period_(period),
+//       number_of_periods_(number_of_periods),
+//       omega_(2. * dealii::numbers::PI / period_)
+//   {
+//   }
+
+//   double
+//   value(dealii::Point<dim> const &, unsigned int const) const final
+//   {
+//     double const t = this->get_time();
+
+//     double result = 0.0;
+
+//     if(t < (double)number_of_periods_ * period_)
+//     {
+//       result = std::sin(omega_ * t);
+//     }
+
+//     return result;
+//   }
+
+// private:
+//   double const       period_;
+//   unsigned int const number_of_periods_;
+//   double const       omega_;
+// };
+
+
 template<int dim, typename Number>
 class Application : public ApplicationBase<dim, Number>
 {
@@ -198,92 +256,52 @@ public:
   add_parameters(dealii::ParameterHandler & prm) final
   {
     ApplicationBase<dim, Number>::add_parameters(prm);
-
     prm.enter_subsection("Application");
     {
-      // MATHEMATICAL MODEL
-      prm.add_parameter("Formulation", this->param.formulation, "Formulation.");
-
-      // PHYSICAL QUANTITIES
-      prm.add_parameter("SpeedOfSound",
-                        this->param.speed_of_sound,
-                        "Speed of sound.",
-                        dealii::Patterns::Double());
-
-      // TEMPORAL DISCRETIZATION
-      prm.add_parameter("TimeIntegrationScheme",
-                        this->param.calculation_of_time_step_size,
-                        "How to calculate time step size.");
-
-      prm.add_parameter("UserSpecifiedTimeStepSize",
-                        this->param.time_step_size,
-                        "UserSpecified Timestep size.",
-                        dealii::Patterns::Double());
-
-      prm.add_parameter("CFL", this->param.cfl, "CFL number.", dealii::Patterns::Double());
-
-      prm.add_parameter("OrderTimeIntegrator",
-                        this->param.order_time_integrator,
-                        "Order of time integration.",
-                        dealii::Patterns::Integer(1));
-
-      // APPLICATION SPECIFIC
-      // prm.add_parameter("RuntimeInNumberOfPeriods",
-      //                   number_of_periods,
-      //                   "Number of temporal oscillations during runtime.",
-      //                   dealii::Patterns::Double(1.0e-12));
-
-      prm.add_parameter("EndTime",
-                        end_time,
-                        "End Time in seconds.",
-                        dealii::Patterns::Double(1.0e-12));
-
-      prm.add_parameter("Amplitude",
-                        ampl,
-                        "Amplitude of pressure excitation.",
-                        dealii::Patterns::Double());
-
-      prm.add_parameter("Frequency",
-                        freq,
-                        "Frequency of pressure excitation.",
-                        dealii::Patterns::Double(1.0e-12));
-
-      prm.add_parameter("Density", density, "Density.", dealii::Patterns::Double());
       prm.add_parameter("BoundaryValueFilename",
                         boundary_val_filename,
                         "File name for reading arbitrary Dirichlet boundary values.",
                         dealii::Patterns::FileName(),
                         true);
+
+      prm.add_parameter("EndTime",
+                        end_time,
+                        "End Time in seconds.",
+                        dealii::Patterns::Double(1.0e-12));
     }
     prm.leave_subsection();
   }
 
 private:
-CSVTrajectoryReader<dim> reader;
+  CSVTrajectoryReader<dim> reader;
 
   void
   set_parameters() final
   {
     reader.parse_file(boundary_val_filename);
 
-
-
-    // PHYSICAL QUANTITIES
+    this->param.formulation     = Formulation::SkewSymmetric;
     this->param.right_hand_side = true;
     this->param.start_time      = start_time;
-    this->param.end_time      = end_time;
+    this->param.end_time        = end_time;
 
-    // TEMPORAL DISCRETIZATION
-    this->param.start_with_low_order = true;
+    this->param.speed_of_sound = speed_of_sound_;
 
-    // output of solver information
-    this->param.solver_info_data.interval_time = (this->param.end_time - this->param.start_time);
+    this->param.calculation_of_time_step_size = TimeStepCalculation::CFL;
+    this->param.cfl                           = 0.25;
+    this->param.order_time_integrator         = 2;
+    this->param.start_with_low_order          = true;
+    this->param.adaptive_time_stepping        = false;
 
-    // SPATIAL DISCRETIZATION
+    this->param.restarted_simulation       = false;
+    this->param.restart_data.write_restart = false;
+
     this->param.grid.triangulation_type = TriangulationType::Distributed;
     this->param.mapping_degree          = 1;
     this->param.degree_p                = this->param.degree_u;
     this->param.degree_u                = this->param.degree_p;
+
+    this->param.has_pml = true;
   }
 
   void
@@ -296,27 +314,100 @@ CSVTrajectoryReader<dim> reader;
           unsigned int const global_refinements,
           std::vector<unsigned int> const & /* vector_local_refinements*/)
     {
-        //mock cube_1m.e
-        dealii::GridGenerator::subdivided_hyper_cube(tria,5, 0.0, 1.0, true);
-        for(const auto & face : tria.active_face_iterators()) {
-          if(face->at_boundary()) {
-            face->set_boundary_id(face->boundary_id()+1);
-          }
-        }
+      // unsigned int n_elements_x = static_cast<unsigned int>(std::ceil((length_) / height_));
+      // std::vector<unsigned int> subdivisions(dim, 1);
+      // subdivisions[0] = n_elements_x;
+      // dealii::Point<dim> p1;
+      // dealii::Point<dim> p2;
+      // p1[0] = 0.0;
+      // p2[0] = length_;
+      // for(uint d = 1; d < dim; ++d)
+      // {
+      //   p1[d] = -0.5 * height_;
+      //   p2[d] = 0.5 * height_;
+      // }
 
-      //  // GridIn<dim>(tria).read_exodusii("2D-extruded_test1_20m_v02.e", false);
-      //  GridIn<dim>(tria).read_exodusii("../applications/acoustic_conservation_laws/valley/cube_1m.e", false);
+      // double const               bonus_domain_length = height_ * std::tan(theta);
+      // dealii::Triangulation<dim> domain;
+      // dealii::GridGenerator::subdivided_hyper_rectangle(domain, subdivisions, p1, p2);
+
+      // dealii::GridTools::transform(
+      //   [&](const dealii::Point<dim> & p)
+      //   {
+      //     if(p[0] > length_ - 1e-6 && p[2] < -0.5 * height_ + 1e-6)
+      //     {
+      //       auto p_new = p;
+      //       p_new[0] += bonus_domain_length;
+      //       return p_new;
+      //     }
+      //     return p;
+      //   },
+      //   domain);
+
+      // for(const auto & face : domain.active_face_iterators())
+      //   if(face->at_boundary())
+      //   {
+      //     if(face->center()[0] < 1e-6)
+      //       face->set_boundary_id(1); // left
+      //     else if((std::abs(face->center()[1]) > (0.5 * height_) - 1.0e-6) ||
+      //             (dim == 3 && std::abs(face->center()[2]) > (0.5 * height_) - 1.0e-6))
+      //       face->set_boundary_id(2); // wall
+      //     else
+      //       face->set_boundary_id(3); // right
+      //   }
+
+      // for(const auto & cell : domain.active_cell_iterators())
+      // {
+      //   cell->set_material_id(0);
+      // }
+
+      // dealii::Triangulation<dim> pml;
+      // subdivisions[0] =
+      //   n_elements_pml * (unsigned int)std::pow(2, this->param.grid.n_refine_global);
+
+      // std::cout << "\nn_pml_elements: " << subdivisions[0] << "\n\n";
+
+      // p1[0] = length_;
+      // p2[0] = length_ + pml_length;
+      // dealii::GridGenerator::subdivided_hyper_rectangle(pml, subdivisions, p1, p2);
+
+      // dealii::GridTools::transform(
+      //   [&](const dealii::Point<dim> & p)
+      //   {
+      //     if(p[0] > length_ - 1e-6 && p[2] < -0.5 * height_ + 1e-6)
+      //     {
+      //       auto p_new = p;
+      //       p_new[0] += bonus_domain_length;
+      //       return p_new;
+      //     }
+      //     return p;
+      //   },
+      //   pml);
+
+      // GridIn<dim>(tria).read_exodusii("2D-extruded_test1_20m_v02.e", false);
+      GridIn<dim>(tria).read_exodusii(
+        "/home/fs72428/fkraxb01/dealII_exaDG/exadg/applications/acoustic_conservation_equations/valley/2D-extruded_separateBlocks_300m_PML_noLSW.e",
+        false);
+
 
       // GridIn writes ExodusII sideset_ids into manifold ids. We want to use it as boundary IDs and
       // have flat manifolds:
-      // GridIn<dim>(tria).read_exodusii(
-      //   "/storage_3_nfs/TrafficNoise_3D/01_Mesh/2D-valley_extruded/2D-extruded_test1_20m.e",
-      //   true);
       // for(const auto & face : tria.active_face_iterators())
+      // {
       //   if(face->at_boundary())
       //     face->set_boundary_id(face->manifold_id());
+      // }
+      // std::cout << "LEBE 3" << std::endl;
       // tria.set_all_manifold_ids_on_boundary(dealii::numbers::flat_manifold_id);
 
+      // for(const auto & face : pml.active_face_iterators())
+      //   if(face->at_boundary())
+      //     face->set_boundary_id(99); // pml
+
+      // for(const auto & cell : pml.active_cell_iterators())
+      //   cell->set_material_id(numbers::pml_material_id);
+
+      // dealii::GridGenerator::merge_triangulations({domain, pml}, tria, 1e-6, true, true);
       tria.refine_global(global_refinements);
       refine_triangulation_along_trajectory(tria, 1, target_radius);
     };
@@ -331,109 +422,114 @@ CSVTrajectoryReader<dim> reader;
 
   void
   refine_triangulation_along_trajectory(dealii::Triangulation<dim> & tria,
-                                   unsigned int const           n_ref,
-                                   double const                 radius) const{
-
-      if(n_ref > 0)
+                                        unsigned int const           n_ref,
+                                        double const                 radius) const
+  {
+    if(n_ref > 0)
+    {
+      for(unsigned int r = 0; r < n_ref; ++r)
       {
-        for(unsigned int r = 0; r < n_ref; ++r)
-        {
-          for(auto const & cell : tria.active_cell_iterators())
-            if(cell->is_locally_owned())
+        for(auto const & cell : tria.active_cell_iterators())
+          if(cell->is_locally_owned())
+          {
+            for(const unsigned int i : dealii::GeometryInfo<dim>::vertex_indices())
             {
-              for(const unsigned int i : dealii::GeometryInfo<dim>::vertex_indices())
+              // std::cout<<"i: "<<i<<std::endl;
+              auto const & v = cell->vertex(i);
+              auto         it =
+                std::find_if(reader.positions.begin(),
+                             reader.positions.end(),
+                             [&](auto const & p) { return (p - v).norm() < radius - 1.0e-6; });
+              if(it != reader.positions.end())
               {
-                auto const& v=cell->vertex(i);
-                auto it = std::find_if(reader.positions.begin(), reader.positions.end(),[&](auto const&p){return (p-v).norm()<radius-1.0e-6;});
-                if(it!=reader.positions.end())
-                {
-                  cell->set_refine_flag();
-                }
+                cell->set_refine_flag();
               }
             }
+          }
 
-          tria.execute_coarsening_and_refinement();
-        }
+        tria.execute_coarsening_and_refinement();
       }
+    }
   }
 
   void
   set_boundary_descriptor() final
   {
-    // this->boundary_descriptor->pressure_dbc.insert(
-    //   std::make_pair(1, std::make_shared<AnalyticalBcPressure<dim>>(freq, ampl)));
+    // 0 not defined: ABC
+    this->boundary_descriptor->admittance_bc.insert(
+      std::make_pair(0, std::make_shared<dealii::Functions::ConstantFunction<dim>>(1.0)));
+    // 1 S_BAHN sound hard
+    this->boundary_descriptor->admittance_bc.insert(
+      std::make_pair(1, std::make_shared<dealii::Functions::ConstantFunction<dim>>(0.0)));
+    // 2 S_WIESE1
+    this->boundary_descriptor->admittance_bc.insert(
+      std::make_pair(2, std::make_shared<dealii::Functions::ConstantFunction<dim>>(0.0)));
+    // 3 S_STRASSE
+    this->boundary_descriptor->admittance_bc.insert(
+      std::make_pair(3, std::make_shared<dealii::Functions::ConstantFunction<dim>>(0.0)));
+    // 4 S_WIESE2
+    this->boundary_descriptor->admittance_bc.insert(
+      std::make_pair(4, std::make_shared<dealii::Functions::ConstantFunction<dim>>(0.0)));
+    // 5 S_WALD2
+    this->boundary_descriptor->admittance_bc.insert(
+      std::make_pair(5, std::make_shared<dealii::Functions::ConstantFunction<dim>>(0.0)));
+    // 6 S_LSW-Li_bottom
+    this->boundary_descriptor->admittance_bc.insert(
+      std::make_pair(6, std::make_shared<dealii::Functions::ConstantFunction<dim>>(0.0)));
+    // 7 S_LSW-Li_outer
+    this->boundary_descriptor->admittance_bc.insert(
+      std::make_pair(7, std::make_shared<dealii::Functions::ConstantFunction<dim>>(0.0)));
+    // 8 S_LSW-Li_front-back
+    this->boundary_descriptor->admittance_bc.insert(
+      std::make_pair(8, std::make_shared<dealii::Functions::ConstantFunction<dim>>(0.0)));
+    // 9 S_LSW-Re_bottom
+    this->boundary_descriptor->admittance_bc.insert(
+      std::make_pair(9, std::make_shared<dealii::Functions::ConstantFunction<dim>>(0.0)));
 
-    // this->boundary_descriptor->pressure_dbc.insert(
-    //   std::make_pair(1, std::make_shared<ReadBcPressure<dim>>(filename)));
-
-
-    // for(int i = 1; i < 4; i++)
-    // {
-    //   // this->boundary_descriptor->pressure_dbc.insert(
-    //   //   std::make_pair(i, std::make_shared<AnalyticalBcPressure<dim>>(freq, ampl)));
-    //   this->boundary_descriptor->admittance_bc.insert(
-    //     std::make_pair(i, std::make_shared<Functions::ConstantFunction<dim>>(0.0)));
-    // }
-    // for(int i = 4; i < 7; i++)
-    // {
-    //   // this->boundary_descriptor->pressure_dbc.insert(
-    //   //   std::make_pair(i, std::make_shared<AnalyticalBcPressure<dim>>(freq, ampl)));
-    //   this->boundary_descriptor->admittance_bc.insert(
-    //     std::make_pair(i, std::make_shared<Functions::ConstantFunction<dim>>(1.0)));
-    // }
-
-    // // Soundhard
-    // this->boundary_descriptor->admittance_bc.insert(std::make_pair(2, std::make_shared<Functions::ConstantFunction<dim>>(0.0)));
-    // this->boundary_descriptor->admittance_bc.insert(std::make_pair(3, std::make_shared<Functions::ConstantFunction<dim>>(0.0)));
-    // this->boundary_descriptor->admittance_bc.insert(std::make_pair(4, std::make_shared<Functions::ConstantFunction<dim>>(0.0)));
-
-    // // ABC
-    // this->boundary_descriptor->admittance_bc.insert(std::make_pair(1, std::make_shared<Functions::ConstantFunction<dim>>(1.0)));
-    // this->boundary_descriptor->admittance_bc.insert(std::make_pair(5, std::make_shared<Functions::ConstantFunction<dim>>(1.0)));
-    // this->boundary_descriptor->admittance_bc.insert(std::make_pair(6, std::make_shared<Functions::ConstantFunction<dim>>(1.0)));
-
-    // ID = 0 ??
-    // this->boundary_descriptor->admittance_bc.insert(std::make_pair(0, std::make_shared<Functions::ConstantFunction<dim>>(0.0)));
-    // // Wald
-    // this->boundary_descriptor->admittance_bc.insert(std::make_pair(1, std::make_shared<Functions::ConstantFunction<dim>>(0.0)));
-    // this->boundary_descriptor->admittance_bc.insert(std::make_pair(6, std::make_shared<Functions::ConstantFunction<dim>>(0.0)));
-    // // Bahn, Strasse
-    // this->boundary_descriptor->admittance_bc.insert(std::make_pair(2, std::make_shared<Functions::ConstantFunction<dim>>(0.0)));
-    // this->boundary_descriptor->admittance_bc.insert(std::make_pair(4, std::make_shared<Functions::ConstantFunction<dim>>(0.0)));
-    // // Wiese
-    // this->boundary_descriptor->admittance_bc.insert(std::make_pair(3, std::make_shared<Functions::ConstantFunction<dim>>(0.0)));
-    // this->boundary_descriptor->admittance_bc.insert(std::make_pair(5, std::make_shared<Functions::ConstantFunction<dim>>(0.0)));
-    // // ABC
-    // this->boundary_descriptor->admittance_bc.insert(std::make_pair(7, std::make_shared<Functions::ConstantFunction<dim>>(1.0)));
-    // this->boundary_descriptor->admittance_bc.insert(std::make_pair(8, std::make_shared<Functions::ConstantFunction<dim>>(1.0)));
-    // this->boundary_descriptor->admittance_bc.insert(std::make_pair(9, std::make_shared<Functions::ConstantFunction<dim>>(1.0)));
-    // this->boundary_descriptor->admittance_bc.insert(std::make_pair(10, std::make_shared<Functions::ConstantFunction<dim>>(1.0)));
-    // this->boundary_descriptor->admittance_bc.insert(std::make_pair(11, std::make_shared<Functions::ConstantFunction<dim>>(1.0)));
-
-
-    this->boundary_descriptor->admittance_bc.insert(std::make_pair(1, std::make_shared<Functions::ConstantFunction<dim>>(1.0)));
-    this->boundary_descriptor->admittance_bc.insert(std::make_pair(2, std::make_shared<Functions::ConstantFunction<dim>>(1.0)));
-    this->boundary_descriptor->admittance_bc.insert(std::make_pair(3, std::make_shared<Functions::ConstantFunction<dim>>(1.0)));
-    this->boundary_descriptor->admittance_bc.insert(std::make_pair(4, std::make_shared<Functions::ConstantFunction<dim>>(1.0)));
-    this->boundary_descriptor->admittance_bc.insert(std::make_pair(5, std::make_shared<Functions::ConstantFunction<dim>>(1.0)));
-    this->boundary_descriptor->admittance_bc.insert(std::make_pair(6, std::make_shared<Functions::ConstantFunction<dim>>(1.0)));
-
+    // PML aussen
+    this->boundary_descriptor->admittance_bc.insert(
+      std::make_pair(99, std::make_shared<dealii::Functions::ConstantFunction<dim>>(0.0)));
   }
 
   void
   set_field_functions() final
   {
-    this->field_functions->initial_solution_pressure =
-      std::make_shared<dealii::Functions::ZeroFunction<dim>>(1);
-
-    this->field_functions->initial_solution_velocity =
-      std::make_shared<dealii::Functions::ZeroFunction<dim>>(dim);
-
-    // this->field_functions->right_hand_side =
-    //   std::make_shared<dealii::Functions::ZeroFunction<dim>>(1);
+    this->field_functions->initial_solution_pressure.reset(
+      new dealii::Functions::ZeroFunction<dim>(1));
+    this->field_functions->initial_solution_velocity.reset(
+      new dealii::Functions::ZeroFunction<dim>(dim));
 
     this->field_functions->right_hand_side =
       std::make_shared<ReadBcPressure<dim>>(target_radius, reader);
+
+
+
+    std::vector<PMLInfo<dim>> pml_infos;
+    PMLInfo<dim>              pml_info;
+    pml_info.speed_of_sound = speed_of_sound_;
+    pml_info.pml_thickness  = 20.0;
+
+    pml_info.point_on_plane = {2760.0, 0.0, 0.0}; // PML right
+    pml_info.normal         = {1.0, 0.0, 0.0};
+    pml_infos.emplace_back(pml_info);
+
+    pml_info.point_on_plane = {0.0, 0.0, 0.0}; // PML left
+    pml_info.normal         = {-1.0, 0.0, 0.0};
+    pml_infos.emplace_back(pml_info);
+
+    pml_info.point_on_plane = {0.0, 570.549988, 0.0}; // PML top
+    pml_info.normal         = {0.0, 1.0, 0.0};
+    pml_infos.emplace_back(pml_info);
+
+    pml_info.point_on_plane = {0.0, 0.0, 0.0}; // PML front
+    pml_info.normal         = {0.0, 0.0, 1.0};
+    pml_infos.emplace_back(pml_info);
+
+    pml_info.point_on_plane = {0.0, 0.0, -300.0}; // PML back
+    pml_info.normal         = {0.0, 0.0, -1.0};
+    pml_infos.emplace_back(pml_info);
+
+    this->field_functions->pml_damping.reset(new PMLDamping<dim>(pml_infos));
   }
 
   std::shared_ptr<PostProcessorBase<dim, Number>>
@@ -441,45 +537,22 @@ CSVTrajectoryReader<dim> reader;
   {
     PostProcessorData<dim> pp_data;
 
-    // std::cout<<"END TIME "<<end_time<<std::endl;
-
     // write output for visualization of results
     pp_data.output_data.time_control_data.is_active  = this->output_parameters.write;
     pp_data.output_data.time_control_data.start_time = start_time;
-    pp_data.output_data.time_control_data.end_time = end_time;
+    pp_data.output_data.time_control_data.end_time   = end_time;
+
     pp_data.output_data.time_control_data.trigger_interval =
-      (end_time - start_time) / 40.0;
+      (this->param.end_time - start_time) / 40.0;
+
     pp_data.output_data.directory          = this->output_parameters.directory + "vtu/";
     pp_data.output_data.filename           = this->output_parameters.filename;
+    pp_data.output_data.write_velocity     = false;
     pp_data.output_data.write_pressure     = true;
-    pp_data.output_data.write_velocity     = true;
+    pp_data.output_data.write_processor_id = true;
     pp_data.output_data.write_boundary_IDs = true;
     pp_data.output_data.write_higher_order = true;
-    pp_data.output_data.degree             = this->param.degree_u;
-
-    // pointwise output
-    pp_data.pointwise_output_data.time_control_data.is_active  = false;
-    pp_data.pointwise_output_data.time_control_data.start_time = start_time;
-    pp_data.pointwise_output_data.time_control_data.end_time   = this->param.end_time;
-    pp_data.pointwise_output_data.time_control_data.trigger_interval =
-      (this->end_time - start_time) / 1000.0;
-    pp_data.pointwise_output_data.directory =
-      this->output_parameters.directory + "pointwise_output/";
-    pp_data.pointwise_output_data.filename       = this->output_parameters.filename;
-    pp_data.pointwise_output_data.write_pressure = true;
-    pp_data.pointwise_output_data.write_velocity = true;
-    pp_data.pointwise_output_data.update_points_before_evaluation = false;
-    // pp_data.pointwise_output_data.evaluation_points.push_back(
-    //   dealii::Point<dim>(0.5 * (right - left), 0.5 * (right - left)));
-
-    // sound energy calculation
-    pp_data.sound_energy_data.time_control_data.is_active  = false;
-    pp_data.sound_energy_data.time_control_data.start_time = this->param.start_time;
-    pp_data.sound_energy_data.time_control_data.end_time = this->param.end_time;
-    pp_data.sound_energy_data.density                      = density;
-    pp_data.sound_energy_data.speed_of_sound               = this->param.speed_of_sound;
-    pp_data.sound_energy_data.time_control_data.trigger_every_time_steps = 1;
-    pp_data.sound_energy_data.directory = this->output_parameters.directory + "sound_energy/";
+    pp_data.output_data.degree             = this->param.degree_p;
 
     std::shared_ptr<PostProcessorBase<dim, Number>> pp;
     pp.reset(new PostProcessor<dim, Number>(pp_data, this->mpi_comm));
@@ -487,31 +560,24 @@ CSVTrajectoryReader<dim> reader;
     return pp;
   }
 
-  // problem specific parameters like physical dimensions, etc.
-  double      freq              = 1.0;
-  double      ampl              = 1.0;
-  double      number_of_periods = 1.0;
-  double      density           = 1.0;
-  std::string boundary_val_filename          = "";
-  double target_radius = 0.01;
 
-  double
-  compute_period_duration()
-  {
-    return (1 / freq);
-  }
+  double       length_            = 1.0;
+  double       height_            = 0.1;
+  double       period_            = 1.0;
+  unsigned int number_of_periods_ = 1;
+  double       speed_of_sound_    = 1.0;
+  unsigned int n_elements_pml     = 5;
+  double       pml_length         = 0.3;
+  double const theta              = 0.0 * 0.25 * dealii::numbers::PI;
 
-  double const left  = 0.0;
-  double const right = 1.0;
+  std::string boundary_val_filename = "";
+  double      target_radius         = 0.2;
 
   double const start_time = 0.0;
-  double end_time = 0.1;
+  double       end_time   = 0.1;
 };
-
-} // namespace Acoustics
-
-} // namespace ExaDG
+} // namespace ExaDG::Acoustics
 
 #include <exadg/acoustic_conservation_equations/user_interface/implement_get_application.h>
 
-#endif /* APPLICATIONS_ACOUSTIC_CONSERVATION_EQUATIONS_TEST_CASES_VIBRATING_MEMBRANE_H_ */
+#endif /* APPLICATIONS_ACOUSTIC_CONSERVATION_LAWS_TEST_CASES_PLANE_WAVE_IN_DUCT_H_ */
