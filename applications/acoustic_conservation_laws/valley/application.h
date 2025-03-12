@@ -268,6 +268,16 @@ public:
                         end_time,
                         "End Time in seconds.",
                         dealii::Patterns::Double(1.0e-12));
+
+      prm.add_parameter("SpeedOfSound",
+                        speed_of_sound,
+                        "Speed of sound.",
+                        dealii::Patterns::Double());
+
+      prm.add_parameter("SourceRadius",
+                        target_radius,
+                        "Radius of Source Term in m.",
+                        dealii::Patterns::Double());
     }
     prm.leave_subsection();
   }
@@ -285,7 +295,10 @@ private:
     this->param.start_time      = start_time;
     this->param.end_time        = end_time;
 
-    this->param.speed_of_sound = speed_of_sound_;
+    this->param.speed_of_sound = speed_of_sound;
+
+    std::cout << "start time " << start_time << " | end time " << end_time << std::endl;
+    std::cout << "speed of sound " << speed_of_sound << std::endl;
 
     this->param.calculation_of_time_step_size = TimeStepCalculation::CFL;
     this->param.cfl                           = 0.25;
@@ -409,7 +422,7 @@ private:
 
       // dealii::GridGenerator::merge_triangulations({domain, pml}, tria, 1e-6, true, true);
       tria.refine_global(global_refinements);
-      refine_triangulation_along_trajectory(tria, 1, target_radius);
+      refine_triangulation_along_trajectory(tria, 1, 2.0 * target_radius);
     };
 
     GridUtilities::create_triangulation<dim>(
@@ -499,6 +512,7 @@ private:
     this->field_functions->initial_solution_velocity.reset(
       new dealii::Functions::ZeroFunction<dim>(dim));
 
+    std::cout << "target_radius: " << target_radius << std::endl;
     this->field_functions->right_hand_side =
       std::make_shared<ReadBcPressure<dim>>(target_radius, reader);
 
@@ -506,7 +520,7 @@ private:
 
     std::vector<PMLInfo<dim>> pml_infos;
     PMLInfo<dim>              pml_info;
-    pml_info.speed_of_sound = speed_of_sound_;
+    pml_info.speed_of_sound = this->param.speed_of_sound;
     pml_info.pml_thickness  = 20.0;
 
     pml_info.point_on_plane = {2760.0, 0.0, 0.0}; // PML right
@@ -565,13 +579,13 @@ private:
   double       height_            = 0.1;
   double       period_            = 1.0;
   unsigned int number_of_periods_ = 1;
-  double       speed_of_sound_    = 1.0;
-  unsigned int n_elements_pml     = 5;
-  double       pml_length         = 0.3;
+  double       speed_of_sound     = 343.0;
+  unsigned int n_elements_pml     = 2;
+  double       pml_length         = 0.2;
   double const theta              = 0.0 * 0.25 * dealii::numbers::PI;
 
   std::string boundary_val_filename = "";
-  double      target_radius         = 0.2;
+  double      target_radius         = 10;
 
   double const start_time = 0.0;
   double       end_time   = 0.1;
