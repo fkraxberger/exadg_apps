@@ -132,7 +132,7 @@ namespace ExaDG::Acoustics {
             this->param.speed_of_sound = speed_of_sound_;
 
             this->param.calculation_of_time_step_size = TimeStepCalculation::CFL;
-            this->param.cfl = 0.125;
+            this->param.cfl = 0.25;
             this->param.order_time_integrator = 2;
             this->param.start_with_low_order = true;
             this->param.adaptive_time_stepping = false;

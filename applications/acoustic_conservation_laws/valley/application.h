@@ -181,9 +181,6 @@ public:
     const dealii::Point<dim> p2 = positions[std::distance(times.begin(), it2)];
 
     currentPosition = p1 + (new_time - t1) / (t2 - t1) * (p2 - p1);
-
-    // std::cout<<"currentPosition "<<currentPosition ;
-    // std::cout<<" | boundaryVal "<<boundaryVal<<std::endl;
   }
 
 
@@ -193,6 +190,13 @@ public:
     const double currentR = (currentPosition - p).norm();
     if(currentR < radius)
     {
+      // static bool written = false;
+      // if(!written)
+      // {
+      //   // std::cout << "currentPosition " << currentPosition;
+      //   // std::cout << " | boundaryVal " << boundaryVal << std::endl;
+      //   written = true;
+      // }
       return boundaryVal;
     }
     return 0.0;
@@ -297,8 +301,8 @@ private:
 
     this->param.speed_of_sound = speed_of_sound;
 
-    std::cout << "start time " << start_time << " | end time " << end_time << std::endl;
-    std::cout << "speed of sound " << speed_of_sound << std::endl;
+    // std::cout << "start time " << start_time << " | end time " << end_time << std::endl;
+    // std::cout << "speed of sound " << speed_of_sound << std::endl;
 
     this->param.calculation_of_time_step_size = TimeStepCalculation::CFL;
     this->param.cfl                           = 0.25;
@@ -312,9 +316,9 @@ private:
     this->param.grid.triangulation_type = TriangulationType::Distributed;
     this->param.mapping_degree          = 1;
     this->param.degree_p                = this->param.degree_u;
-    this->param.degree_u                = this->param.degree_p;
+    this->param.degree_u = this->param.degree_p;
 
-    this->param.has_pml = true;
+    this->param.has_pml = false;
   }
 
   void
@@ -403,26 +407,31 @@ private:
         false);
 
 
-      // GridIn writes ExodusII sideset_ids into manifold ids. We want to use it as boundary IDs and
-      // have flat manifolds:
-      // for(const auto & face : tria.active_face_iterators())
-      // {
-      //   if(face->at_boundary())
-      //     face->set_boundary_id(face->manifold_id());
-      // }
-      // std::cout << "LEBE 3" << std::endl;
-      // tria.set_all_manifold_ids_on_boundary(dealii::numbers::flat_manifold_id);
 
-      // for(const auto & face : pml.active_face_iterators())
-      //   if(face->at_boundary())
-      //     face->set_boundary_id(99); // pml
+      // std::set<unsigned int> material_id;
+      for(const auto & cell : tria.active_cell_iterators())
+      {
+        // material_id.insert(cell->material_id());
+        if(cell->material_id() != 1 && cell->material_id() != 2 &&
+           cell->material_id() != 3) // 1 is the ID of air domain
+        {
+          // static bool written = false;
+          // if(!written)
+          // {
+          //   std::cout << "set material id to pml" << std::endl;
+          //   written = true;
+          // }
+          cell->set_material_id(numbers::pml_material_id);
+          for(const auto & face : cell->face_iterators())
+            if(face->at_boundary())
+              face->set_boundary_id(99); // pml
+        }
+      }
+      // for(auto const & m : material_id)
+      //   std::cout << "material_id: " << m << std::endl;
 
-      // for(const auto & cell : pml.active_cell_iterators())
-      //   cell->set_material_id(numbers::pml_material_id);
-
-      // dealii::GridGenerator::merge_triangulations({domain, pml}, tria, 1e-6, true, true);
       tria.refine_global(global_refinements);
-      refine_triangulation_along_trajectory(tria, 1, 2.0 * target_radius);
+      refine_triangulation_along_trajectory(tria, 2, 2.0 * target_radius);
     };
 
     GridUtilities::create_triangulation<dim>(
@@ -445,18 +454,25 @@ private:
         for(auto const & cell : tria.active_cell_iterators())
           if(cell->is_locally_owned())
           {
-            for(const unsigned int i : dealii::GeometryInfo<dim>::vertex_indices())
+            // for(const unsigned int i : dealii::GeometryInfo<dim>::vertex_indices())
+            // {
+            //   // std::cout<<"i: "<<i<<std::endl;
+            //   auto const & v = cell->vertex(i);
+            //   auto         it =
+            //     std::find_if(reader.positions.begin(),
+            //                  reader.positions.end(),
+            //                  [&](auto const & p) { return (p - v).norm() < radius - 1.0e-6; });
+            //   if(it != reader.positions.end())
+            //   {
+            //     cell->set_refine_flag();
+            //   }
+            // }
+            if(auto it = std::find_if(reader.positions.begin(),
+                                      reader.positions.end(),
+                                      [&](auto const & p) { return cell->point_inside(p); });
+               it != reader.positions.end())
             {
-              // std::cout<<"i: "<<i<<std::endl;
-              auto const & v = cell->vertex(i);
-              auto         it =
-                std::find_if(reader.positions.begin(),
-                             reader.positions.end(),
-                             [&](auto const & p) { return (p - v).norm() < radius - 1.0e-6; });
-              if(it != reader.positions.end())
-              {
-                cell->set_refine_flag();
-              }
+              cell->set_refine_flag();
             }
           }
 
@@ -512,11 +528,9 @@ private:
     this->field_functions->initial_solution_velocity.reset(
       new dealii::Functions::ZeroFunction<dim>(dim));
 
-    std::cout << "target_radius: " << target_radius << std::endl;
+    // std::cout << "target_radius: " << target_radius << std::endl;
     this->field_functions->right_hand_side =
       std::make_shared<ReadBcPressure<dim>>(target_radius, reader);
-
-
 
     std::vector<PMLInfo<dim>> pml_infos;
     PMLInfo<dim>              pml_info;
@@ -557,16 +571,16 @@ private:
     pp_data.output_data.time_control_data.end_time   = end_time;
 
     pp_data.output_data.time_control_data.trigger_interval =
-      (this->param.end_time - start_time) / 40.0;
+      (this->param.end_time - start_time) / 100.0;
 
     pp_data.output_data.directory          = this->output_parameters.directory + "vtu/";
     pp_data.output_data.filename           = this->output_parameters.filename;
     pp_data.output_data.write_velocity     = false;
     pp_data.output_data.write_pressure     = true;
     pp_data.output_data.write_processor_id = true;
-    pp_data.output_data.write_boundary_IDs = true;
+    pp_data.output_data.write_boundary_IDs = false;
     pp_data.output_data.write_higher_order = true;
-    pp_data.output_data.degree             = this->param.degree_p;
+    pp_data.output_data.degree             = 1;
 
     std::shared_ptr<PostProcessorBase<dim, Number>> pp;
     pp.reset(new PostProcessor<dim, Number>(pp_data, this->mpi_comm));
@@ -585,7 +599,7 @@ private:
   double const theta              = 0.0 * 0.25 * dealii::numbers::PI;
 
   std::string boundary_val_filename = "";
-  double      target_radius         = 10;
+  double      target_radius         = 0.2;
 
   double const start_time = 0.0;
   double       end_time   = 0.1;

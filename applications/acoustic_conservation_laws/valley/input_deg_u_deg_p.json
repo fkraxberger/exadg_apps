@@ -5,8 +5,8 @@
     "IsTest": "false"
   },
   "SpatialResolution": {
-    "DegreeMin": "2",
-    "DegreeMax": "2",
+    "DegreeMin": "4",
+    "DegreeMax": "4",
     "RefineSpaceMin": "0",
     "RefineSpaceMax": "0"
   },
@@ -16,12 +16,12 @@
   },
   "Application": {
     "BoundaryValueFilename": "/home/fs72428/fkraxb01/dealII_exaDG/exadg/applications/acoustic_conservation_equations/valley/300m_staticSource_audio_with_trajectory.csv",
-    "EndTime": "0.099",
+    "EndTime": "3.0",
     "SpeedOfSound": "343.0"
   },
   "Output": {
-    "OutputDirectory": "output/valley_pml/",
-    "OutputName": "valley_pml",
+    "OutputDirectory": "output/valley_pml_deg_u_deg_p/",
+    "OutputName": "valley_pml_deg_u_deg_p",
     "WriteOutput": "true"
   }
 }

@@ -1,0 +1,27 @@
+{
+  "General": {
+    "Precision": "double",
+    "Dim": "3",
+    "IsTest": "false"
+  },
+  "SpatialResolution": {
+    "DegreeMin": "6",
+    "DegreeMax": "6",
+    "RefineSpaceMin": "0",
+    "RefineSpaceMax": "0"
+  },
+  "TemporalResolution": {
+    "RefineTimeMin": "0",
+    "RefineTimeMax": "0"
+  },
+  "Application": {
+    "BoundaryValueFilename": "/home/fs72428/fkraxb01/dealII_exaDG/exadg/applications/acoustic_conservation_equations/valley/300m_staticSource_f20_audio_with_trajectory_LP.csv",
+    "EndTime": "3.0",
+    "SpeedOfSound": "343.0"
+  },
+  "Output": {
+    "OutputDirectory": "output/valley_onlyABC_v3/",
+    "OutputName": "valley_onlyABC_v3",
+    "WriteOutput": "true"
+  }
+}
