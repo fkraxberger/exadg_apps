@@ -20,8 +20,8 @@
     "SpeedOfSound": "343.0"
   },
   "Output": {
-    "OutputDirectory": "output/valley_pml_deg_u_deg_p/",
-    "OutputName": "valley_pml_deg_u_deg_p",
+    "OutputDirectory": "output/valley_pml_deg_u_deg_p2/",
+    "OutputName": "valley_pml_deg_u_deg_p2",
     "WriteOutput": "true"
   }
 }

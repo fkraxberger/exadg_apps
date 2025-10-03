@@ -1,0 +1,30 @@
+{
+  "General": {
+    "Precision": "double",
+    "Dim": "3",
+    "IsTest": "false"
+  },
+  "SpatialResolution": {
+    "DegreeMin": "2",
+    "DegreeMax": "2",
+    "RefineSpaceMin": "1",
+    "RefineSpaceMax": "1"
+  },
+  "TemporalResolution": {
+    "RefineTimeMin": "0",
+    "RefineTimeMax": "0"
+  },
+  "Application": {
+    "BoundaryValueFilename": "/home/fs72754/fkraxb02/dealII_exaDG/exadg_apps/applications/acoustic_conservation_laws/valley_sourceRegion_w300/2025-06-19_valley_w300_audio_blended_with_trajectory.csv",
+    "MeshFilename": "/home/fs72754/fkraxb02/dealII_exaDG/exadg_apps/applications/acoustic_conservation_laws/valley_sourceRegion_w300/2D-extruded_valley_sourceRegion_w300.0_LSW_Re_wPML20_nPML4_QUAD_5split0.e",
+    "EndTime": "3.0",
+    "SpeedOfSound": "343.0",
+    "OutputDataDegree": "2",
+    "PmlThickness": "20.0"
+  },
+  "Output": {
+    "OutputDirectory": "/home/fs72754/fkraxb02/storage/output/valley_sourceRegion_w300/",
+    "OutputName": "valley_sourceRegion_w300",
+    "WriteOutput": "true"
+  }
+}

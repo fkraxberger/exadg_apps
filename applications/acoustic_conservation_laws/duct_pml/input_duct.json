@@ -1,0 +1,29 @@
+{
+  "General": {
+    "Precision": "double",
+    "Dim": "3",
+    "IsTest": "false"
+  },
+  "SpatialResolution": {
+    "DegreeMin": "2",
+    "DegreeMax": "2",
+    "RefineSpaceMin": "0",
+    "RefineSpaceMax": "0"
+  },
+  "TemporalResolution": {
+    "RefineTimeMin": "0",
+    "RefineTimeMax": "0"
+  },
+  "Application": {
+    "BoundaryValueFilename": "/home/fs72754/fkraxb02/dealII_exaDG/exadg_apps/applications/acoustic_conservation_laws/duct_pml/2025-06-09_duct-pml_f20_audio_with_trajectory_LP.csv",
+    "MeshFilename": "/home/fs72754/fkraxb02/dealII_exaDG/exadg_apps/applications/acoustic_conservation_laws/duct_pml/duct.e",
+    "EndTime": "8.0",
+    "SpeedOfSound": "1.0",
+    "SourceRadius": "0.02"
+  },
+  "Output": {
+    "OutputDirectory": "output/duct_pml/",
+    "OutputName": "duct_pml",
+    "WriteOutput": "true"
+  }
+}

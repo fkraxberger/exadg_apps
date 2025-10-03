@@ -1,0 +1,28 @@
+{
+  "General": {
+    "Precision": "double",
+    "Dim": "3",
+    "IsTest": "false"
+  },
+  "SpatialResolution": {
+    "DegreeMin": "2",
+    "DegreeMax": "2",
+    "RefineSpaceMin": "0",
+    "RefineSpaceMax": "0"
+  },
+  "TemporalResolution": {
+    "RefineTimeMin": "0",
+    "RefineTimeMax": "0"
+  },
+  "Application": {
+    "BoundaryValueFilename": "/home/fs72754/fkraxb02/dealII_exaDG/exadg_apps/applications/acoustic_conservation_laws/cube_pml/2025-06-06_cube-pml_f20_audio_with_trajectory_LP_fs2000.csv",
+    "MeshFilename": "/home/fs72754/fkraxb02/dealII_exaDG/exadg_apps/applications/acoustic_conservation_laws/cube_pml/cube_pml.e",
+    "EndTime": "1.0",
+    "SpeedOfSound": "343.0"
+  },
+  "Output": {
+    "OutputDirectory": "output/cube_pml_fs2000_invEps/",
+    "OutputName": "cube_pml_fs2000",
+    "WriteOutput": "true"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "General": {
+    "Precision": "double",
+    "Dim": "3",
+    "IsTest": "false"
+  },
+  "SpatialResolution": {
+    "DegreeMin": "2",
+    "DegreeMax": "2",
+    "RefineSpaceMin": "0",
+    "RefineSpaceMax": "0"
+  },
+  "TemporalResolution": {
+    "RefineTimeMin": "0",
+    "RefineTimeMax": "0"
+  },
+  "Application": {
+    "BoundaryValueFilename": "/home/fs72754/fkraxb02/dealII_exaDG/exadg_apps/applications/acoustic_conservation_laws/cube_pml_opposing/2025-06-09_cube_center_f20_audio_with_trajectory.csv",
+    "MeshFilename": "/home/fs72754/fkraxb02/dealII_exaDG/exadg_apps/applications/acoustic_conservation_laws/cube_pml_opposing/cube_pml-opposing.e",
+    "EndTime": "0.3",
+    "WriteIntervalField": "0.5",
+    "WriteIntervalPointwise": "0.0001",
+    "PointwiseOutputPointsFilename" : "/home/fs72754/fkraxb02/dealII_exaDG/exadg_apps/applications/acoustic_conservation_laws/cube_pml_opposing/coords_pointwise.txt",
+    "SpeedOfSound": "343.0",
+    "SourceRadius": "0.02",
+    "PmlBlockId": "2"
+  },
+  "Output": {
+    "OutputDirectory": "output/cube_pml_opposing_sos343_distanceLargerZero/",
+    "OutputName": "cube_pml_opposing",
+    "WriteOutput": "true"
+  }
+}

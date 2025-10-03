@@ -15,13 +15,13 @@
     "RefineTimeMax": "0"
   },
   "Application": {
-    "BoundaryValueFilename": "/home/fs72428/fkraxb01/dealII_exaDG/exadg/applications/acoustic_conservation_equations/valley/300m_staticSource_f20_audio_with_trajectory_LP.csv",
+    "BoundaryValueFilename": "/home/fs72754/fkraxb02/dealII_exaDG/exadg_apps/applications/acoustic_conservation_laws/valley/300m_staticSource_f20_audio_with_trajectory_LP.csv",
     "EndTime": "3.0",
     "SpeedOfSound": "343.0"
   },
   "Output": {
-    "OutputDirectory": "output/valley_onlyABC_v3/",
-    "OutputName": "valley_onlyABC_v3",
+    "OutputDirectory": "output/valley_category_vectorization_false/",
+    "OutputName": "valley_category_vectorization_false",
     "WriteOutput": "true"
   }
 }

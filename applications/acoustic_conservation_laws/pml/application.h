@@ -248,7 +248,7 @@ namespace ExaDG::Acoustics {
                 std::make_pair(2, std::make_shared<dealii::Functions::ConstantFunction<dim> >(0.0)));
             // PML
             this->boundary_descriptor->admittance_bc.insert(
-                std::make_pair(99, std::make_shared<dealii::Functions::ConstantFunction<dim> >(0.0)));
+                std::make_pair(99, std::make_shared<dealii::Functions::ConstantFunction<dim> >(1.0)));
         }
 
         void
@@ -278,16 +278,16 @@ namespace ExaDG::Acoustics {
             pp_data.output_data.time_control_data.start_time = start_time_;
 
             pp_data.output_data.time_control_data.trigger_interval =
-                    (this->param.end_time - start_time_) / 20.0;
+                    (this->param.end_time - start_time_) / 40.0;
 
             pp_data.output_data.directory = this->output_parameters.directory + "vtu/";
             pp_data.output_data.filename = this->output_parameters.filename;
-            pp_data.output_data.write_velocity = false;
+            pp_data.output_data.write_velocity = true;
             pp_data.output_data.write_pressure = true;
             pp_data.output_data.write_processor_id = true;
             pp_data.output_data.write_boundary_IDs = true;
             pp_data.output_data.write_higher_order = true;
-            pp_data.output_data.degree = this->param.degree_p;
+            pp_data.output_data.degree = 1;
 
             std::shared_ptr<PostProcessorBase<dim, Number> > pp;
             pp.reset(new PostProcessor<dim, Number>(pp_data, this->mpi_comm));
@@ -303,8 +303,8 @@ namespace ExaDG::Acoustics {
         double period_ = 1.0;
         unsigned int number_of_periods_ = 1;
         double speed_of_sound_ = 1.0;
-        unsigned int n_elements_pml = 5;
-        double pml_length = 0.3;
+        unsigned int n_elements_pml = 2;
+        double pml_length = 0.2;
         double const theta = 0.0 * 0.25 * dealii::numbers::PI;
     };
 }
